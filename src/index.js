@@ -1,33 +1,73 @@
-import React from 'react';
+import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
-import faker from 'faker';
-import CommentDetail from './CommentDetail';
-import ApprovalCard from './ApprovalCard';
+import './assets/style.css';
+import quizService from './quizService';
+import QuestionBox from './components/QuestionBox';
+import Result from './components/Result';
 
-const App = () => {
-    return (
-        <div className="ui container comments">
-            <ApprovalCard>
-                <div>
-                    <h4>Warning!</h4>
-                    Are you sure you want to do this?
-                </div>
-            </ApprovalCard>
+class Quiz extends Component{
+  state: {
+    questionBank: [],
+    score: 0,
+    responses: 0
+  };
 
-            <ApprovalCard>
-                <CommentDetail author="Sam" timeAgo="Today at 4:45PM" content="Nice blog post" avatar={faker.image.avatar()} />
-            </ApprovalCard>
-            <ApprovalCard>
-                <CommentDetail author="Alex" timeAgo="Today at 2:00PM" content="I like the subject" avatar={faker.image.avatar()} />
-            </ApprovalCard>
-            <ApprovalCard>
-                <CommentDetail author="Jane" timeAgo="Today at 5:45AM" content="I like the writing" avatar={faker.image.avatar()} />
-            </ApprovalCard>
-            <ApprovalCard>
-                <CommentDetail author="John" timeAgo="Today at 6:PM" content="Amazing blog post" avatar={faker.image.avatar()} />
-            </ApprovalCard>
-        </div>
-    );
-};
+  getQuestions(){
+    quizService().then(question => {
+      this.setState({
+        questionBank: question,
+        score: 0,
+        responses: 0
+      })
+    });
+  };
 
-ReactDOM.render(<App />, document.querySelector('#root'));
+  computeAnswer = (answer, correctAnswer) => {
+    if(answer === correctAnswer){
+      this.setState({
+        score: this.state.score + 1
+      });
+    }
+
+    this.setState({
+      responses: this.state.responses < 5 ? this.state.responses + 1 : 5
+    });
+  }
+
+  componentDidMount(){
+    this.getQuestions();
+  }
+
+  playAgain = () => {
+    this.getQuestions();
+    this.setState({
+      score: 0,
+      responses: 0
+    })
+  }
+
+  render(){
+    return(
+      <div className="container">
+        <div className="title">Quiz (MCQs)</div>
+        {this.state && this.state.questionBank.length > 0 && 
+          this.state.responses < 5 &&
+          this.state.questionBank.map(
+            ({question, answers, correct, questionId}) => (
+              <QuestionBox 
+                question={question} 
+                options={answers} 
+                key={questionId} 
+                selected={answer => this.computeAnswer(answer, correct)}
+              />
+            )
+          )}
+
+          {this.state && this.state.responses === 5 ? (<Result score={this.state.score} playAgain={this.playAgain} />) : null}
+      </div>
+    )
+  }
+}
+
+
+ReactDOM.render(<Quiz />, document.getElementById('root'));
